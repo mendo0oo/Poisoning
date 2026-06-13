@@ -1,0 +1,9 @@
+user_pref("xpinstall.signatures.required", false);
+user_pref("extensions.install.requireBuiltInCerts", false);
+user_pref("extensions.autoDisableScopes", 0);
+user_pref("extensions.enabledScopes", 15);
+user_pref("devtools.chrome.enabled", true);
+user_pref("devtools.debugger.remote-enabled", true);
+user_pref("privacy.resistFingerprinting", false);
+user_pref("media.peerconnection.enabled", true);
+user_pref("network.http.referer.XOriginPolicy", 0);

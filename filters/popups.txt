@@ -1,0 +1,10 @@
+! Extra popup/overlay cosmetic rules
+! Examples:
+! example.com##.popup
+! example.com###overlay
+
+##[data-onopen]
+##.mask[data-onopen]
+##img.pic[src*="thatdisform.cyou"]
+##img[src*="thatdisform.cyou"]
+##img[src*=".cyou/"]

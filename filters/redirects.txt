@@ -1,0 +1,6 @@
+! Extra redirect/ad host rules
+! Examples:
+! ||bad-redirect.example^
+! ||popup-network.example^
+
+||thatdisform.cyou^

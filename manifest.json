@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "Poison Identity",
+  "description": "A privacy extension that blocks trackers, spoofs fingerprint signals, and adds noise to protect anonymity.",
+  "version": "0.1.0",
+  "permissions": ["storage", "scripting", "activeTab", "tabs", "webRequest", "declarativeNetRequest", "declarativeNetRequestFeedback", "privacy", "cookies", "browsingData", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "built_in_trackers",
+        "enabled": true,
+        "path": "rules_1.json"
+      },
+      {
+        "id": "privacy_headers",
+        "enabled": true,
+        "path": "rules_2.json"
+      }
+    ]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "logo-poison.png",
+      "32": "logo-poison.png",
+      "64": "logo-poison.png",
+      "128": "logo-poison.png"
+    }
+  },
+  "icons": {
+    "16": "logo-poison.png",
+    "32": "logo-poison.png",
+    "64": "logo-poison.png",
+    "128": "logo-poison.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "poison-identity@example.com",
+      "strict_min_version": "109.0"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pageScript.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

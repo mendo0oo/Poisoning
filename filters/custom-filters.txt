@@ -1,0 +1,4 @@
+! Poison Identity custom filters
+! Add your own uBO/EasyList-style network and cosmetic rules here.
+! Supported subset: ||host^ network host rules and simple ## cosmetic selectors.
+

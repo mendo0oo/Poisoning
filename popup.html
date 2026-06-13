@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poison Identity</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="terminal-header">
+        <div>
+          <img class="brand-logo" src="logo-poison.png" alt="Poison Identity" />
+          <p id="subtitle">Session profile: loading</p>
+        </div>
+        <div class="net-status">
+          <span>NET_STATUS</span>
+          <strong id="status" class="status-pill">Loading</strong>
+        </div>
+      </header>
+
+      <section class="dashboard-grid">
+        <div class="metric">
+          <span>BLOCKED_REQ</span>
+          <strong id="blockedCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>DATA_SCRUBS</span>
+          <strong id="siteDataClears">0</strong>
+        </div>
+        <div class="metric wide">
+          <span>LAST_BLOCKED_HOST</span>
+          <strong id="lastBlockedHost">none</strong>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <strong>:: SESSION_POISON_PROFILE</strong>
+          <span>volatile memory</span>
+        </div>
+        <select id="personaSelect" aria-label="Session poison profile"></select>
+        <p id="personaDescription" class="muted">Choose a temporary fake profile.</p>
+        <button id="applyPersona" class="primary">Apply Session Profile</button>
+      </section>
+
+      <section class="panel antidote-panel">
+        <div>
+          <strong>:: ANTIDOTE_MODE</strong>
+          <p>Cloudflare, banking, login, and fragile sites.</p>
+        </div>
+        <button id="toggleAntidoteMode">Toggle</button>
+      </section>
+
+      <section class="panel controls">
+        <div class="panel-header controls-title">
+          <strong>:: SYSTEM_MODULES</strong>
+          <span>live switches</span>
+        </div>
+        <button id="toggleEnabled" class="primary">Toggle Protection</button>
+        <button id="togglePoisoning">Toggle Poisoning</button>
+        <button id="toggleSpoofing">Toggle Spoofing</button>
+        <button id="togglePopupBlocking">Toggle Popups</button>
+        <button id="toggleCloudflareCompatibility">Toggle Cloudflare</button>
+        <button id="toggleWebrtcShield">Toggle WebRTC</button>
+        <button id="toggleHeaderProtection">Toggle Headers</button>
+        <button id="toggleAutoRejectCookies">Toggle Cookie Reject</button>
+        <button id="toggleAutoCookieClearing">Toggle Data Scrub</button>
+        <button id="trustCurrentSite">Trust Current Site</button>
+        <button id="toggleRemoteFilters">Toggle Remote Filters</button>
+        <button id="refreshFilters">Refresh Filters</button>
+      </section>
+
+      <section class="details">
+        <div>&gt; last_data_clear: <span id="lastDataClear">none</span></div>
+      </section>
+
+      <section class="debug-panel">
+        <div class="debug-header">
+          <strong>:: SYSTEM_LOGS</strong>
+          <div>
+            <button id="toggleDebugMode" type="button">Debug</button>
+            <button id="clearDebugLogs" type="button">Clear</button>
+          </div>
+        </div>
+        <pre id="debugLogs">Loading logs...</pre>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
