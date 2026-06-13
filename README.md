@@ -1,4 +1,4 @@
-# Poison Identity
+﻿# Poison Identity
 
 Poison Identity is a Firefox-first privacy extension that combines tracker blocking, popup/redirect hardening, fingerprint controls, WebRTC/header privacy settings, cookie/site-data cleanup, and controlled fake tracker-noise requests.
 
@@ -7,15 +7,15 @@ This is a defensive privacy tool, not an anonymity guarantee. It cannot hide you
 ## Current Builds
 
 - **Poison-only build**: standalone Chrome MV3 + Firefox MV2 extension.
-- **Hybrid build**: uBlock Origin backend with Poison Identity frontend and page-level privacy modules.
+- **Poison Hybrid build**: Poison Hybrid backend with Poison Identity frontend and page-level privacy modules.
 
-The hybrid build is the recommended build if you want stronger ad/tracker/popup blocking. It is branded as Poison Identity in the browser UI, but it still vendors uBlock Origin internally and includes the uBO GPLv3 license file.
+The Poison Hybrid build is the recommended build if you want stronger ad/tracker/popup blocking. It is branded as Poison Hybrid in the browser UI and keeps the bundled GPLv3 backend license/attribution file.
 
 ## Features
 
 - Built-in tracker/ad hostname blocking.
-- Optional remote host filters from AdTidy/uBO-compatible sources, uAssets, EasyList, EasyPrivacy, URLHaus, and uBO CDN mirrors.
-- uBlock Origin backend in the hybrid build for stronger network/cosmetic/scriptlet blocking.
+- Optional remote host filters from AdTidy/Poison Hybrid-compatible sources, uAssets, EasyList, EasyPrivacy, URLHaus, and Poison Hybrid filter CDN mirrors.
+- Poison Hybrid backend in the hybrid build for stronger network/cosmetic/scriptlet blocking.
 - Popup, fake-dialog, ad-widget, blank-tab, and sketchy redirect blocking.
 - Legitimate download-link allowance logic for visible user-clicked links.
 - Auto-reject for common cookie/consent banners.
@@ -54,9 +54,9 @@ Antidote Mode is for sites that should not be touched aggressively, such as:
 - checkout/payment pages
 - websites broken by privacy hooks
 
-When Antidote is enabled, Poison backs off from page-level hooks and effective spoofing/poisoning for compatibility. In the standalone build it also bypasses Poison request/header blocking. In the hybrid build, uBO backend behavior can still apply unless the site is trusted or uBO itself allows it.
+When Antidote is enabled, Poison backs off from page-level hooks and effective spoofing/poisoning for compatibility. In the standalone build it also bypasses Poison request/header blocking. In the hybrid build, Poison Hybrid backend behavior can still apply unless the site is trusted or the backend allows it.
 
-Use `Trust Current Site` for a persistent site-level bypass. In the hybrid build this also writes the hostname to uBO's `netWhitelist`.
+Use `Trust Current Site` for a persistent site-level bypass. In the hybrid build this also writes the hostname to Poison Hybrid's `netWhitelist`.
 
 ## Cloudflare Compatibility
 
@@ -93,7 +93,7 @@ This is best effort. Shadow DOM, iframes, unusual translations, or site-specific
 
 The standalone build removes common fixed-position ad widgets, popup overlays, interstitials, adblock nags, fake verification dialogs, suspicious notification prompts, unsolicited `window.open` popups, blank popup tabs, and suspicious redirect attempts.
 
-The hybrid build uses uBlock Origin internally for stronger popup/ad/cosmetic/scriptlet handling, with Poison's extra page-level guards layered on top unless Antidote/trusted-site mode is active.
+The hybrid build uses Poison Hybrid internally for stronger popup/ad/cosmetic/scriptlet handling, with Poison's extra page-level guards layered on top unless Antidote/trusted-site mode is active.
 
 ## Remote Filters
 
@@ -105,7 +105,7 @@ Current behavior:
 - Normal top-level page loads are not blocked only because a remote host list contains that domain.
 - Normal page assets such as images, videos, fonts, scripts, and stylesheets are not blocked by Poison-only remote host matching.
 - Poison-only no longer injects remote cosmetic selectors because broad CSS rules were breaking sites.
-- Hybrid build relies on uBlock Origin for full cosmetic/scriptlet/filter behavior.
+- Poison Hybrid handles full cosmetic/scriptlet/filter behavior.
 
 Custom packaged filters live in `filters/`. Add file names to `filters/index.json`, then put rules in those `.txt` files.
 
@@ -144,7 +144,7 @@ Outputs:
 - `dist/poison-identity-firefox.xpi`
 - `dist/poison-identity-chrome.zip`
 
-### Hybrid uBlock backend
+### Poison Hybrid backend
 
 ```powershell
 .\build-hybrid-ublock.ps1
@@ -152,8 +152,8 @@ Outputs:
 
 Outputs:
 
-- `dist/poison-ublock-hybrid-firefox.xpi`
-- `dist/poison-ublock-hybrid-chromium.zip`
+- `dist/poison-hybrid-firefox.xpi`
+- `dist/poison-hybrid-chromium.zip`
 
 The hybrid builder is native PowerShell and clones uAssets with `git` when needed.
 
@@ -164,7 +164,7 @@ The hybrid builder is native PowerShell and clones uAssets with `git` when neede
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on**
 3. Select one of:
-   - `dist/poison-ublock-hybrid-firefox.xpi`
+   - `dist/poison-hybrid-firefox.xpi`
    - `dist/poison-identity-firefox.xpi`
 
 ### Chrome or Brave unpacked
@@ -202,4 +202,19 @@ Chrome and Brave are secondary targets through Manifest V3 and `declarativeNetRe
 
 The Poison-only build is this project.
 
-The hybrid build vendors uBlock Origin and must be treated as GPLv3-compatible distribution because uBlock Origin is GPLv3. Keep the included uBO license and attribution if publishing the hybrid package.
+The Poison Hybrid build vendors a GPLv3 backend. Keep the included GPLv3 license and upstream attribution file if publishing the hybrid package.
+
+## uBlock Origin / GPLv3 Attribution
+
+Poison Hybrid includes modified GPLv3 code from uBlock Origin:
+
+```text
+https://github.com/gorhill/uBlock
+```
+
+uBlock Origin is copyright Raymond Hill and contributors.
+
+Poison Hybrid changes the visible branding, adds the Poison Identity frontend, and adds page-level privacy modules, but the bundled blocking backend remains a modified GPLv3-derived work. Poison Hybrid is not an official uBlock Origin release.
+
+If you distribute Poison Hybrid builds, keep the GPLv3 license files and this attribution, publish the complete corresponding source code, and clearly mark the package as a modified build.
+

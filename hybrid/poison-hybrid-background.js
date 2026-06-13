@@ -220,7 +220,7 @@
     return {
       ok: true,
       trustedSites: settings.trustedSites,
-      note: 'Reload the tab once so uBO refreshes its in-memory trusted-site map.'
+      note: 'Reload the tab once so Poison Hybrid refreshes its in-memory trusted-site map.'
     };
   };
 
@@ -350,7 +350,7 @@
         return;
       }
       if (message?.command === 'refreshFilters') {
-        sendResponse({ ok: true, note: 'uBO handles filter updates in its dashboard' });
+        sendResponse({ ok: true, note: 'Poison Hybrid handles filter updates in its dashboard' });
         return;
       }
 

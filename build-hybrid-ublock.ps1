@@ -7,7 +7,7 @@ $buildRoot = Join-Path $uBlockDir "dist\build"
 $uAssetsDir = Join-Path $buildRoot "uAssets"
 
 if (-not (Test-Path $uBlockDir)) {
-    throw "uBlock Origin source is missing. Expected: $uBlockDir"
+    throw "Poison Hybrid backend source is missing. Expected: $uBlockDir"
 }
 
 function Copy-Dir {
@@ -39,7 +39,7 @@ function Ensure-UAssets {
         return
     }
 
-    Write-Host "Cloning uBlock Origin uAssets..." -ForegroundColor Cyan
+    Write-Host "Cloning filter assets for Poison Hybrid..." -ForegroundColor Cyan
     if (Test-Path $uAssetsDir) {
         Remove-Item -Path $uAssetsDir -Recurse -Force
     }
@@ -126,12 +126,61 @@ function Set-JsonProperty {
     }
 }
 
+function Set-PoisonHybridLocaleBranding {
+    param([Parameter(Mandatory = $true)][string]$BuildDir)
+
+    Get-ChildItem -Path (Join-Path $BuildDir "_locales") -Recurse -Filter "messages.json" | ForEach-Object {
+        $path = $_.FullName
+        $text = Get-Content -LiteralPath $path -Raw
+        $next = $text.
+            Replace("uBlock Origin Lite", "Poison Hybrid").
+            Replace("uBlock Origin", "Poison Hybrid").
+            Replace("uBO Lite", "Poison Hybrid").
+            Replace("uBO's", "Poison Hybrid's").
+            Replace("uBO", "Poison Hybrid").
+            Replace("uBlockâ‚€", "Poison Hybrid").
+            Replace("uBlock₀", "Poison Hybrid").
+            Replace("uBlock/wiki", "Poison-Hybrid/docs").
+            Replace("Poison Hybrid has prevented the following page from loading:", "Poison Hybrid blocked this page before it could load:").
+            Replace("Poison Hybrid has prevented the following page from loading.", "Poison Hybrid blocked this page before it could load.").
+            Replace("Finally, an efficient blocker. Easy on CPU and memory.", "Poison Hybrid privacy engine with tracker blocking, popup hardening, and Poison Identity controls.")
+        if ($next -ne $text) {
+            Set-Content -LiteralPath $path -Value $next -Encoding UTF8
+        }
+    }
+}
+
+function Set-PoisonHybridHtmlBranding {
+    param([Parameter(Mandatory = $true)][string]$BuildDir)
+
+    $replacements = @{
+        "uBlock Origin Background Page" = "Poison Hybrid Background Page"
+        "uBO blank" = "Poison Hybrid blank"
+        "uBlock Origin" = "Poison Hybrid"
+        "uBlockâ‚€" = "Poison Hybrid"
+        "uBlock₀" = "Poison Hybrid"
+        "img/ublock.svg" = "poison/logo-poison.png"
+    }
+
+    Get-ChildItem -Path $BuildDir -Recurse -Include "*.html","*.css" -File | ForEach-Object {
+        $path = $_.FullName
+        $text = Get-Content -LiteralPath $path -Raw
+        $next = $text
+        foreach ($key in $replacements.Keys) {
+            $next = $next.Replace($key, $replacements[$key])
+        }
+        if ($next -ne $text) {
+            Set-Content -LiteralPath $path -Value $next -Encoding UTF8
+        }
+    }
+}
+
 function Build-UBlockPlatform {
     param(
         [Parameter(Mandatory = $true)][ValidateSet("firefox", "chromium")][string]$Platform
     )
 
-    $buildDir = Join-Path $buildRoot "uBlock0.$Platform"
+    $buildDir = Join-Path $buildRoot "PoisonHybrid.$Platform"
     if (Test-Path $buildDir) {
         Remove-Item -Path $buildDir -Recurse -Force
     }
@@ -213,10 +262,13 @@ function Add-PoisonToUBlockBuild {
         $manifest.web_accessible_resources = $war + @("/poison/pageScript.js")
     }
 
-    $manifest.name = "Poison Identity"
-    $manifest.short_name = "Poison"
-    $manifest.description = "Poison Identity privacy engine with tracker blocking, fingerprint controls, popup hardening, and session poison profiles."
-    $manifest.browser_action.default_title = "Poison Identity"
+    Set-PoisonHybridLocaleBranding -BuildDir $BuildDir
+    Set-PoisonHybridHtmlBranding -BuildDir $BuildDir
+
+    $manifest.name = "Poison Hybrid"
+    $manifest.short_name = "Poison Hybrid"
+    $manifest.description = "Poison Hybrid privacy engine with tracker blocking, fingerprint controls, popup hardening, and session poison profiles."
+    $manifest.browser_action.default_title = "Poison Hybrid"
     $manifest.browser_action.default_popup = "poison/popup.html"
     $poisonIconSet = [ordered]@{
         "16" = "poison/logo-poison.png"
@@ -226,18 +278,41 @@ function Add-PoisonToUBlockBuild {
     }
     Set-JsonProperty -Object $manifest -Name "icons" -Value $poisonIconSet
     Set-JsonProperty -Object $manifest.browser_action -Name "default_icon" -Value $poisonIconSet
+    if ($manifest.sidebar_action) {
+        $manifest.sidebar_action.default_icon = "poison/logo-poison.png"
+    }
 
     if ($manifest.browser_specific_settings -and $manifest.browser_specific_settings.gecko) {
-        $manifest.browser_specific_settings.gecko.id = "poison-ublock-hybrid@example.com"
+        $manifest.browser_specific_settings.gecko.id = "poison-hybrid@example.com"
     }
     if ($manifest.applications -and $manifest.applications.gecko) {
-        $manifest.applications.gecko.id = "poison-ublock-hybrid@example.com"
+        $manifest.applications.gecko.id = "poison-hybrid@example.com"
     }
 
     $manifest | ConvertTo-Json -Depth 100 | Set-Content -Path $manifestPath -Encoding UTF8
-    Copy-File -Source (Join-Path $uBlockDir "LICENSE.txt") -Destination (Join-Path $BuildDir "LICENSE.uBlock-Origin.GPLv3.txt")
+    Copy-File -Source (Join-Path $uBlockDir "LICENSE.txt") -Destination (Join-Path $BuildDir "LICENSE.Poison-Hybrid-backend-GPLv3.txt")
 
-    Write-Host "Injected Poison module into $Platform uBO build" -ForegroundColor Green
+    $notice = @"
+Poison Hybrid third-party notice
+================================
+
+Poison Hybrid includes modified GPLv3 code from uBlock Origin:
+https://github.com/gorhill/uBlock
+
+uBlock Origin is copyright Raymond Hill and contributors.
+Poison Hybrid changes the visible branding, adds Poison Identity frontend modules,
+and adds page-level privacy controls, but the bundled blocking backend remains a
+modified GPLv3-derived work.
+
+Distribution requirements:
+- Keep this notice.
+- Keep LICENSE.txt and LICENSE.Poison-Hybrid-backend-GPLv3.txt.
+- Make the complete corresponding source code available when distributing XPI/ZIP builds.
+- Mark this as a modified build, not an official uBlock Origin release.
+"@
+    Set-Content -Path (Join-Path $BuildDir "NOTICE.Poison-Hybrid.txt") -Value $notice -Encoding UTF8
+
+    Write-Host "Injected Poison module into $Platform Poison Hybrid build" -ForegroundColor Green
 }
 
 function New-WebExtensionZip {
@@ -271,7 +346,7 @@ function New-WebExtensionZip {
     }
 }
 
-Write-Host "Building Poison/uBlock hybrid..." -ForegroundColor Cyan
+Write-Host "Building Poison Hybrid..." -ForegroundColor Cyan
 Ensure-UAssets
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
@@ -281,8 +356,8 @@ $chBuild = Build-UBlockPlatform -Platform "chromium"
 Add-PoisonToUBlockBuild -BuildDir $ffBuild -Platform "Firefox"
 Add-PoisonToUBlockBuild -BuildDir $chBuild -Platform "Chromium"
 
-$ffXpi = Join-Path $outDir "poison-ublock-hybrid-firefox.xpi"
-$chZip = Join-Path $outDir "poison-ublock-hybrid-chromium.zip"
+$ffXpi = Join-Path $outDir "poison-hybrid-firefox.xpi"
+$chZip = Join-Path $outDir "poison-hybrid-chromium.zip"
 Remove-Item $ffXpi, $chZip -Force -ErrorAction SilentlyContinue
 
 New-WebExtensionZip -SourceDir $ffBuild -DestinationPath $ffXpi
