@@ -30,11 +30,17 @@ const els = {
 
 let currentState = null;
 
-const sendMessage = (message) => new Promise((resolve) => {
+Object.defineProperty(window, 'marlboro', {
+  value: () => 'Poison Identity // smoke the trackers',
+  enumerable: false,
+  configurable: false
+});
+
+const marlboroCourier = (message) => new Promise((resolve) => {
   browserAPI.runtime.sendMessage(message, (response) => resolve(response || {}));
 });
 
-const getActiveTab = () => new Promise((resolve) => {
+const marlboroActiveTab = () => new Promise((resolve) => {
   if (!browserAPI.tabs?.query) {
     resolve(null);
     return;
@@ -44,7 +50,7 @@ const getActiveTab = () => new Promise((resolve) => {
   });
 });
 
-const getHostname = (url) => {
+const marlboroHostname = (url) => {
   try {
     return new URL(url).hostname;
   } catch (error) {
@@ -52,7 +58,7 @@ const getHostname = (url) => {
   }
 };
 
-const setButton = (id, active, onText, offText) => {
+const marlboroButton = (id, active, onText, offText) => {
   els[id].textContent = active ? onText : offText;
 };
 
@@ -80,18 +86,18 @@ const renderState = (state) => {
   els.status.classList.toggle('antidote', antidote);
   els.status.textContent = antidote ? 'Antidote' : state.enabled ? 'Protected' : 'Paused';
 
-  setButton('toggleEnabled', state.enabled, 'Pause Protection', 'Resume Protection');
-  setButton('toggleSpoofing', state.spoofingEnabled, 'Spoofing On', 'Spoofing Off');
-  setButton('togglePoisoning', state.poisoningEnabled, 'Poisoning On', 'Poisoning Off');
-  setButton('toggleAutoRejectCookies', state.autoRejectCookiesEnabled, 'Cookie Reject On', 'Cookie Reject Off');
-  setButton('togglePopupBlocking', state.popupBlockingEnabled, 'Popup Guard On', 'Popup Guard Off');
-  setButton('toggleCloudflareCompatibility', state.cloudflareCompatibilityEnabled, 'Cloudflare Compat On', 'Cloudflare Compat Off');
-  setButton('toggleAntidoteMode', antidote, 'Disable Antidote', 'Enable Antidote');
-  setButton('toggleAutoCookieClearing', state.autoCookieClearingEnabled, 'Data Scrub On', 'Data Scrub Off');
-  setButton('toggleWebrtcShield', state.webrtcShieldEnabled, 'WebRTC Shield On', 'WebRTC Shield Off');
-  setButton('toggleHeaderProtection', state.headerProtectionEnabled, 'Headers Protected', 'Headers Normal');
-  setButton('toggleRemoteFilters', state.useRemoteFilters, 'Remote Filters On', 'Remote Filters Off');
-  setButton('toggleDebugMode', state.debugEnabled, 'Debug On', 'Debug Off');
+  marlboroButton('toggleEnabled', state.enabled, 'Pause Protection', 'Resume Protection');
+  marlboroButton('toggleSpoofing', state.spoofingEnabled, 'Spoofing On', 'Spoofing Off');
+  marlboroButton('togglePoisoning', state.poisoningEnabled, 'Poisoning On', 'Poisoning Off');
+  marlboroButton('toggleAutoRejectCookies', state.autoRejectCookiesEnabled, 'Cookie Reject On', 'Cookie Reject Off');
+  marlboroButton('togglePopupBlocking', state.popupBlockingEnabled, 'Popup Guard On', 'Popup Guard Off');
+  marlboroButton('toggleCloudflareCompatibility', state.cloudflareCompatibilityEnabled, 'Cloudflare Compat On', 'Cloudflare Compat Off');
+  marlboroButton('toggleAntidoteMode', antidote, 'Disable Antidote', 'Enable Antidote');
+  marlboroButton('toggleAutoCookieClearing', state.autoCookieClearingEnabled, 'Data Scrub On', 'Data Scrub Off');
+  marlboroButton('toggleWebrtcShield', state.webrtcShieldEnabled, 'WebRTC Shield On', 'WebRTC Shield Off');
+  marlboroButton('toggleHeaderProtection', state.headerProtectionEnabled, 'Headers Protected', 'Headers Normal');
+  marlboroButton('toggleRemoteFilters', state.useRemoteFilters, 'Remote Filters On', 'Remote Filters Off');
+  marlboroButton('toggleDebugMode', state.debugEnabled, 'Debug On', 'Debug Off');
 
   els.blockedCount.textContent = state.blockedCount || 0;
   els.siteDataClears.textContent = state.siteDataClears || 0;
@@ -102,7 +108,7 @@ const renderState = (state) => {
 };
 
 const refreshState = async () => {
-  renderState(await sendMessage({ command: 'getState' }));
+  renderState(await marlboroCourier({ command: 'getState' }));
 };
 
 const formatDebugLog = (entry) => {
@@ -112,14 +118,14 @@ const formatDebugLog = (entry) => {
 };
 
 const refreshDebugLogs = async () => {
-  const response = await sendMessage({ command: 'getDebugLogs' });
+  const response = await marlboroCourier({ command: 'getDebugLogs' });
   const logs = response?.logs || [];
   els.debugLogs.textContent = logs.length ? logs.slice(-40).map(formatDebugLog).join('\n') : 'No logs yet.';
   els.debugLogs.scrollTop = els.debugLogs.scrollHeight;
 };
 
 const toggle = (command) => async () => {
-  await sendMessage({ command });
+  await marlboroCourier({ command });
   await refreshState();
 };
 
@@ -130,7 +136,7 @@ els.personaSelect.addEventListener('change', () => {
 
 els.applyPersona.addEventListener('click', async () => {
   els.applyPersona.textContent = 'Applying...';
-  await sendMessage({ command: 'setSessionPersona', personaId: els.personaSelect.value });
+  await marlboroCourier({ command: 'setSessionPersona', personaId: els.personaSelect.value });
   els.applyPersona.textContent = 'Apply Session Profile';
   await refreshState();
 });
@@ -149,27 +155,27 @@ els.toggleRemoteFilters.addEventListener('click', toggle('toggleRemoteFilters'))
 els.toggleDebugMode.addEventListener('click', toggle('toggleDebugMode'));
 
 els.trustCurrentSite.addEventListener('click', async () => {
-  const tab = await getActiveTab();
-  const hostname = getHostname(tab?.url || '');
+  const tab = await marlboroActiveTab();
+  const hostname = marlboroHostname(tab?.url || '');
   if (!hostname) {
     els.trustCurrentSite.textContent = 'No Site Found';
     setTimeout(refreshState, 1200);
     return;
   }
   els.trustCurrentSite.textContent = `Trusting ${hostname}`;
-  await sendMessage({ command: 'addTrustedSite', hostname, url: tab.url });
+  await marlboroCourier({ command: 'addTrustedSite', hostname, url: tab.url });
   await refreshState();
 });
 
 els.refreshFilters.addEventListener('click', async () => {
   els.refreshFilters.textContent = 'Refreshing...';
-  await sendMessage({ command: 'refreshFilters' });
+  await marlboroCourier({ command: 'refreshFilters' });
   els.refreshFilters.textContent = 'Refresh Filters';
   await refreshState();
 });
 
 els.clearDebugLogs.addEventListener('click', async () => {
-  await sendMessage({ command: 'clearDebugLogs' });
+  await marlboroCourier({ command: 'clearDebugLogs' });
   await refreshDebugLogs();
 });
 

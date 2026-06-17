@@ -9,6 +9,16 @@ Poison improves privacy, but it is not an anonymity guarantee. It does not hide 
 - **Poison Identity**: standalone Firefox MV2 + Chrome MV3 build.
 - **Poison Hybrid**: recommended build with stronger ad/tracker/popup blocking and Poison's privacy controls.
 
+## Prebuilt Download
+
+Grab the current prebuilt release here:
+
+```text
+https://github.com/mendo0oo/Poisoning/releases/tag/Release
+```
+
+Prebuilt download. 
+
 ## Features
 
 - Tracker/ad hostname blocking.
@@ -112,6 +122,10 @@ http://127.0.0.1:8787
 ```
 
 The lab includes fake collectors, tracker pixels, popups, redirects, fingerprint probes, and a legitimate download link.
+
+## Info
+
+I know i fucked up the release.
 
 ## Browser Support
 
