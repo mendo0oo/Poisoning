@@ -643,6 +643,12 @@ const page = `<!doctype html>
     async function snapshotEnvironment() {
       const nav = navigator;
       const values = {
+        poisonHook: window.__POISON_IDENTITY_PAGE_SCRIPT__?.installed ? 'installed' : 'not installed',
+        poisonEnabled: window.__POISON_IDENTITY_PAGE_SCRIPT__?.enabled ?? 'n/a',
+        poisonSpoofing: window.__POISON_IDENTITY_PAGE_SCRIPT__?.spoofingEnabled ?? 'n/a',
+        poisonProfileUA: window.__POISON_IDENTITY_PAGE_SCRIPT__?.userAgent || 'n/a',
+        poisonProfilePlatform: window.__POISON_IDENTITY_PAGE_SCRIPT__?.platform || 'n/a',
+        poisonProfileDeviceMemory: window.__POISON_IDENTITY_PAGE_SCRIPT__?.deviceMemory ?? 'n/a',
         userAgent: nav.userAgent,
         platform: nav.platform,
         language: nav.language,
@@ -652,10 +658,16 @@ const page = `<!doctype html>
         webdriver: nav.webdriver,
         vendor: nav.vendor,
         screen: screen.width + 'x' + screen.height + ' / depth ' + screen.colorDepth,
+        viewport: innerWidth + 'x' + innerHeight + ' outer ' + outerWidth + 'x' + outerHeight,
+        devicePixelRatio,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         cookieEnabled: nav.cookieEnabled,
         doNotTrack: nav.doNotTrack,
-        plugins: nav.plugins ? nav.plugins.length : 'n/a'
+        plugins: nav.plugins ? nav.plugins.length : 'n/a',
+        mimeTypes: nav.mimeTypes ? nav.mimeTypes.length : 'n/a',
+        connection: nav.connection ? [nav.connection.effectiveType, nav.connection.rtt, nav.connection.downlink, nav.connection.saveData].join(' / ') : 'n/a',
+        storageEstimate: nav.storage?.estimate ? 'available' : 'n/a',
+        battery: nav.getBattery ? 'available' : 'n/a'
       };
       const env = document.getElementById('envGrid');
       env.innerHTML = Object.keys(values).map(key =>
@@ -784,7 +796,10 @@ const page = `<!doctype html>
     document.getElementById('rejectCookies').onclick = () => { jsonPost('/collector/cookie-choice', { choice: 'reject' }); clearPageTraps(); };
     document.getElementById('acceptCookies').onclick = () => { jsonPost('/collector/cookie-choice', { choice: 'accept' }); clearPageTraps(); };
 
+    window.addEventListener('POISON_IDENTITY_PAGE_SCRIPT_READY', snapshotEnvironment);
     snapshotEnvironment();
+    setTimeout(snapshotEnvironment, 800);
+    setTimeout(snapshotEnvironment, 1800);
     setInterval(refresh, 1400);
     refresh();
   </script>
@@ -856,9 +871,32 @@ const trackerJs = `window.fakeTracker = {
           availHeight: screen.availHeight,
           colorDepth: screen.colorDepth,
           pixelDepth: screen.pixelDepth,
-          devicePixelRatio
+          devicePixelRatio,
+          innerWidth,
+          innerHeight,
+          outerWidth,
+          outerHeight
         },
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezoneOffset: new Date().getTimezoneOffset(),
+        connection: navigator.connection ? {
+          effectiveType: navigator.connection.effectiveType,
+          rtt: navigator.connection.rtt,
+          downlink: navigator.connection.downlink,
+          saveData: navigator.connection.saveData,
+          type: navigator.connection.type
+        } : null,
+        storageEstimate: navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null,
+        battery: navigator.getBattery ? await navigator.getBattery().then(battery => ({
+          charging: battery.charging,
+          chargingTime: battery.chargingTime,
+          dischargingTime: battery.dischargingTime,
+          level: battery.level
+        })).catch(error => ({ error: error.message })) : null,
+        permissions: navigator.permissions ? {
+          notifications: await navigator.permissions.query({ name: 'notifications' }).then(result => result.state).catch(error => 'error:' + error.message),
+          geolocation: await navigator.permissions.query({ name: 'geolocation' }).then(result => result.state).catch(error => 'error:' + error.message)
+        } : null,
         plugins: Array.from(navigator.plugins || []).map(plugin => plugin.name),
         mimeTypes: Array.from(navigator.mimeTypes || []).map(type => type.type),
         mediaDevices,

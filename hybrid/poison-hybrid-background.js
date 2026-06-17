@@ -6,7 +6,7 @@
   const DEBUG_KEY = 'poisonHybridDebugLogs';
   const UBO_WHITELIST_KEY = 'netWhitelist';
   const DEFAULT_FINGERPRINT_PROFILE = {
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Poisoned/1.0',
     platform: 'Win32',
     language: 'en-US',
     languages: ['en-US', 'en'],
@@ -19,7 +19,20 @@
     webglRenderer: 'ANGLE (Google, Vulkan 1.3.0)',
     doNotTrack: '1',
     globalPrivacyControl: true,
-    cookieEnabled: true
+    cookieEnabled: true,
+    screenWidth: 1920,
+    screenHeight: 1080,
+    availWidth: 1920,
+    availHeight: 1040,
+    innerWidth: 1920,
+    innerHeight: 940,
+    outerWidth: 1920,
+    outerHeight: 1080,
+    colorDepth: 24,
+    pixelDepth: 24,
+    devicePixelRatio: 1,
+    timezone: 'UTC',
+    timezoneOffset: 0
   };
   const SESSION_PERSONAS = {
     standard: {
@@ -30,10 +43,12 @@
       poisonSources: ['direct', 'search', 'newsletter'],
       fingerprintProfile: {
         ...DEFAULT_FINGERPRINT_PROFILE,
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 Poisoned/1.0',
         vendor: '',
         webglVendor: 'Mozilla',
-        webglRenderer: 'Firefox WebGL'
+        webglRenderer: 'Firefox WebGL',
+        timezone: 'Europe/Berlin',
+        timezoneOffset: -60
       }
     },
     gamer: {
@@ -46,6 +61,15 @@
         ...DEFAULT_FINGERPRINT_PROFILE,
         deviceMemory: 16,
         hardwareConcurrency: 12,
+        screenWidth: 2560,
+        screenHeight: 1440,
+        availWidth: 2560,
+        availHeight: 1400,
+        innerWidth: 2560,
+        innerHeight: 1320,
+        outerWidth: 2560,
+        outerHeight: 1440,
+        devicePixelRatio: 1,
         webglVendor: 'Google Inc.',
         webglRenderer: 'ANGLE (Google, Vulkan 1.3.0)'
       }
@@ -58,10 +82,64 @@
       poisonSources: ['search', 'affiliate', 'newsletter', 'comparison'],
       fingerprintProfile: {
         ...DEFAULT_FINGERPRINT_PROFILE,
-        deviceMemory: 8,
+        platform: 'Win86',
+        deviceMemory: -1,
         hardwareConcurrency: 8,
+        screenWidth: 1366,
+        screenHeight: 768,
+        availWidth: 1366,
+        availHeight: 728,
+        innerWidth: 1366,
+        innerHeight: 640,
+        outerWidth: 1366,
+        outerHeight: 768,
+        devicePixelRatio: 1,
+        timezone: 'America/New_York',
+        timezoneOffset: 300,
         webglVendor: 'Google Inc.',
         webglRenderer: 'ANGLE (Google, Vulkan 1.3.0)'
+      }
+    },
+    lockdown: {
+      id: 'lockdown',
+      name: 'Lockdown Scrub',
+      description: 'Highest-security mode: enables blocking, spoofing, cookie rejection, remote filters, and whole-browser data scrub.',
+      interests: ['privacy', 'security', 'encryption', 'threat-intel', 'burner-session'],
+      poisonSources: ['direct', 'hardened-search', 'security-feed', 'temporary-profile'],
+      settingOverrides: {
+        enabled: true,
+        spoofingEnabled: true,
+        poisoningEnabled: true,
+        popupBlockingEnabled: true,
+        cloudflareCompatibilityEnabled: true,
+        webrtcShieldEnabled: true,
+        headerProtectionEnabled: true,
+        autoRejectCookiesEnabled: true,
+        autoCookieClearingEnabled: true,
+        antidoteModeEnabled: false
+      },
+      fingerprintProfile: {
+        ...DEFAULT_FINGERPRINT_PROFILE,
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0 Poisoned/1.0',
+        platform: 'Win32',
+        language: 'en-US',
+        languages: ['en-US', 'en'],
+        deviceMemory: 0,
+        hardwareConcurrency: 4,
+        screenWidth: 1600,
+        screenHeight: 900,
+        availWidth: 1600,
+        availHeight: 860,
+        innerWidth: 1600,
+        innerHeight: 780,
+        outerWidth: 1600,
+        outerHeight: 900,
+        devicePixelRatio: 1,
+        vendor: '',
+        webglVendor: 'Mozilla',
+        webglRenderer: 'Firefox WebGL',
+        timezone: 'UTC',
+        timezoneOffset: 0
       }
     }
   };
@@ -329,9 +407,14 @@
       if (message?.command === 'setSessionPersona') {
         const persona = await setSessionPersona(message.personaId || 'standard');
         const settings = await getSettings();
+        Object.assign(settings, persona.settingOverrides || {});
         settings.fingerprintProfile = persona.fingerprintProfile;
         settings.poisonPersona = persona;
         await setSettings(settings);
+        applyPrivacy(settings);
+        if (settings.enabled && settings.poisoningEnabled && settings.autoCookieClearingEnabled) {
+          clearSiteData();
+        }
         sendResponse({ ok: true, poisonPersona: persona, fingerprintProfile: persona.fingerprintProfile });
         return;
       }

@@ -112,7 +112,7 @@ const SUSPICIOUS_REDIRECT_TLDS = [
   'icu'
 ];
 const DEFAULT_FINGERPRINT_PROFILE = {
-  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Poisoned/1.0',
   platform: 'Win32',
   language: 'en-US',
   languages: ['en-US', 'en'],
@@ -1158,6 +1158,9 @@ const COOKIE_BANNER_SELECTORS = [
   '#CybotCookiebotDialog',
   '#didomi-host',
   '#usercentrics-root',
+  '#CXQnmb',
+  '.KxvlWc',
+  '.GZ7xNe',
   '[id*="cookie" i]',
   '[class*="cookie" i]',
   '[id*="consent" i]',
@@ -1181,7 +1184,21 @@ const COOKIE_REJECT_TEXT = [
   'continue without accepting',
   'do not accept',
   'refuse',
-  'opt out'
+  'opt out',
+  'alle ablehnen',
+  'alles ablehnen',
+  'ablehnen',
+  'nicht akzeptieren',
+  'nur erforderliche',
+  'nur notwendige',
+  'tout refuser',
+  'refuser',
+  'rechazar todo',
+  'rechazar',
+  'rifiuta tutto',
+  'rifiuta',
+  'weigeren',
+  'alles weigeren'
 ];
 
 const COOKIE_SETTINGS_TEXT = [
@@ -1190,7 +1207,11 @@ const COOKIE_SETTINGS_TEXT = [
   'preferences',
   'customize',
   'settings',
-  'options'
+  'options',
+  'weitere optionen',
+  'optionen verwalten',
+  'datenschutzeinstellungen',
+  'manage privacy'
 ];
 
 const COOKIE_ACCEPT_TEXT = [
@@ -1198,7 +1219,9 @@ const COOKIE_ACCEPT_TEXT = [
   'agree',
   'allow all',
   'accept all',
-  'i agree'
+  'i agree',
+  'alle akzeptieren',
+  'akzeptieren'
 ];
 
 const getVisibleText = (element) => (element.textContent || element.value || element.getAttribute('aria-label') || '').trim().toLowerCase();
@@ -1212,7 +1235,17 @@ const isVisible = (element) => {
 const isCookieContainer = (element) => {
   const text = getVisibleText(element);
   const marker = `${element.id || ''} ${element.className || ''} ${element.getAttribute('aria-label') || ''}`.toLowerCase();
-  return text.includes('cookie') || text.includes('consent') || text.includes('privacy') || marker.includes('cookie') || marker.includes('consent');
+  return text.includes('cookie') ||
+    text.includes('cookies') ||
+    text.includes('consent') ||
+    text.includes('privacy') ||
+    text.includes('datenschutz') ||
+    text.includes('personalisierung') ||
+    text.includes('alle ablehnen') ||
+    marker.includes('cookie') ||
+    marker.includes('consent') ||
+    marker.includes('cxqnmb') ||
+    marker.includes('kxvlwc');
 };
 
 const findButtonByText = (container, preferredText) => {
@@ -1226,8 +1259,55 @@ const findButtonByText = (container, preferredText) => {
   });
 };
 
+const findGoogleConsentRejectButton = () => {
+  const direct = document.querySelector('#W0wltc');
+  if (direct && isVisible(direct)) {
+    return direct;
+  }
+  return Array.from(document.querySelectorAll('button, [role="button"]')).find((button) => {
+    if (!isVisible(button)) {
+      return false;
+    }
+    const text = getVisibleText(button);
+    const marker = `${button.id || ''} ${button.className || ''} ${button.getAttribute?.('aria-label') || ''}`.toLowerCase();
+    return /alle ablehnen|alles ablehnen|reject all|decline all/.test(`${text} ${marker}`) &&
+      !/alle akzeptieren|accept all/.test(`${text} ${marker}`);
+  });
+};
+
+const activateConsentButton = (button) => {
+  try {
+    button.scrollIntoView({ block: 'center', inline: 'center' });
+  } catch (error) {
+    // Ignore scroll failures.
+  }
+  for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+    try {
+      button.dispatchEvent(new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      }));
+    } catch (error) {
+      // Continue with native click fallback.
+    }
+  }
+  try {
+    button.click();
+  } catch (error) {
+    // Ignore final click failures.
+  }
+};
+
 const autoRejectCookieBanners = () => {
   if (!extensionState.enabled || !extensionState.autoRejectCookiesEnabled || isCloudflareCompatibilityPage()) {
+    return;
+  }
+
+  const googleRejectButton = findGoogleConsentRejectButton();
+  if (googleRejectButton) {
+    debugLog('cookie-reject-click', { text: getVisibleText(googleRejectButton).slice(0, 80), provider: 'google' });
+    activateConsentButton(googleRejectButton);
     return;
   }
 
@@ -1238,14 +1318,14 @@ const autoRejectCookieBanners = () => {
     const rejectButton = findButtonByText(container, COOKIE_REJECT_TEXT);
     if (rejectButton) {
       debugLog('cookie-reject-click', { text: getVisibleText(rejectButton).slice(0, 80) });
-      rejectButton.click();
+      activateConsentButton(rejectButton);
       return;
     }
 
     const settingsButton = findButtonByText(container, COOKIE_SETTINGS_TEXT);
     if (settingsButton) {
       debugLog('cookie-settings-click', { text: getVisibleText(settingsButton).slice(0, 80) });
-      settingsButton.click();
+      activateConsentButton(settingsButton);
       setTimeout(autoRejectCookieBanners, 500);
       return;
     }

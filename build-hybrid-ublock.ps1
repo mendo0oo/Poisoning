@@ -363,5 +363,12 @@ Remove-Item $ffXpi, $chZip -Force -ErrorAction SilentlyContinue
 New-WebExtensionZip -SourceDir $ffBuild -DestinationPath $ffXpi
 New-WebExtensionZip -SourceDir $chBuild -DestinationPath $chZip
 
+$chUnpacked = Join-Path $outDir "poison-hybrid-chromium"
+if (Test-Path $chUnpacked) {
+    Remove-Item -Path $chUnpacked -Recurse -Force
+}
+Copy-Dir -Source $chBuild -Destination $chUnpacked
+
 Write-Host "Hybrid Firefox XPI: $ffXpi" -ForegroundColor Green
 Write-Host "Hybrid Chromium ZIP: $chZip" -ForegroundColor Green
+Write-Host "Hybrid Chromium unpacked: $chUnpacked" -ForegroundColor Green

@@ -7,6 +7,8 @@
   const SETTINGS_KEY = 'poisonHybridSettings';
   const POISON_RATE_MS = 30000;
   const MAX_POISON_TARGETS = 10;
+  const COOKIE_REJECT_SCAN_MS = 900;
+  const COOKIE_REJECT_MAX_SCANS = 24;
 
   const POPUP_CSS = `
 [data-onopen],
@@ -29,8 +31,75 @@ iframe[src*=".cyou/"] {
   const adTextPattern = /attention|please confirm|confirm to continue|looking for ads|kupferaktie|meldet fund|congratulations|available \$?35,?000|withdraw money|transfer money|reward zone|book now|buy now|trade now|sponsored|advertisement/i;
   const trackerPattern = /google-analytics|googletagmanager|doubleclick|googlesyndication|facebook|connect\.facebook|pixel|analytics|tracker|tracking|ads?|advert|sponsor|campaign/i;
   const blockedNavigationPattern = /\/ad-redirect|\/collector\/ad-click|\/collector\/redirected|\/collector\/frame-redirect/i;
+  const cookieBannerSelector = [
+    '#onetrust-banner-sdk',
+    '#CybotCookiebotDialog',
+    '#didomi-host',
+    '#usercentrics-root',
+    '#CXQnmb',
+    '.KxvlWc',
+    '.GZ7xNe',
+    '[id*="cookie" i]',
+    '[class*="cookie" i]',
+    '[id*="consent" i]',
+    '[class*="consent" i]',
+    '[aria-label*="cookie" i]',
+    '[aria-label*="consent" i]',
+    '[role="dialog"]'
+  ].join(',');
+  const cookieRejectText = [
+    'reject all',
+    'reject',
+    'decline all',
+    'decline',
+    'deny all',
+    'deny',
+    'necessary only',
+    'essential only',
+    'only necessary',
+    'only essential',
+    'continue without accepting',
+    'do not accept',
+    'refuse',
+    'opt out',
+    'alle ablehnen',
+    'alles ablehnen',
+    'ablehnen',
+    'nicht akzeptieren',
+    'nur erforderliche',
+    'nur notwendige',
+    'tout refuser',
+    'refuser',
+    'rechazar todo',
+    'rechazar',
+    'rifiuta tutto',
+    'rifiuta',
+    'weigeren',
+    'alles weigeren'
+  ];
+  const cookieSettingsText = [
+    'manage options',
+    'manage settings',
+    'preferences',
+    'customize',
+    'settings',
+    'options',
+    'weitere optionen',
+    'optionen verwalten',
+    'datenschutzeinstellungen',
+    'manage privacy'
+  ];
+  const cookieAcceptText = [
+    'accept',
+    'agree',
+    'allow all',
+    'accept all',
+    'i agree',
+    'alle akzeptieren',
+    'akzeptieren'
+  ];
   const DEFAULT_FINGERPRINT_PROFILE = {
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Poisoned/1.0',
     platform: 'Win32',
     language: 'en-US',
     languages: ['en-US', 'en'],
@@ -62,6 +131,8 @@ iframe[src*=".cyou/"] {
   const poisonedTargets = new Set();
   let started = false;
   let cloudflareCompatibilityActive = false;
+  let cookieRejectObserver = null;
+  let cookieRejectScans = 0;
 
   const sendDebug = (event, data = {}) => {
     try {
@@ -70,6 +141,12 @@ iframe[src*=".cyou/"] {
       // Ignore debug failures.
     }
   };
+
+  sendDebug('content-loaded', {
+    href: location.href,
+    hostname: location.hostname,
+    readyState: document.readyState
+  });
 
   const normalizeHostname = (hostname) => String(hostname || '')
     .trim()
@@ -164,6 +241,13 @@ iframe[src*=".cyou/"] {
           ...DEFAULT_FINGERPRINT_PROFILE,
           ...(settings.fingerprintProfile || {})
         };
+        sendDebug('settings-loaded', {
+          enabled: settings.enabled,
+          autoRejectCookiesEnabled: settings.autoRejectCookiesEnabled,
+          antidoteModeEnabled: settings.antidoteModeEnabled,
+          trusted: isTrustedPage(),
+          hostname: location.hostname
+        });
         syncPageState();
         startPageFeatures();
       });
@@ -198,6 +282,153 @@ iframe[src*=".cyou/"] {
     const style = getComputedStyle(node);
     const rect = node.getBoundingClientRect();
     return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+  };
+
+  const isCookieContainer = (node) => {
+    const text = textOf(node).toLowerCase();
+    const marker = `${node?.id || ''} ${node?.className || ''} ${node?.getAttribute?.('aria-label') || ''}`.toLowerCase();
+    return text.includes('cookie') ||
+      text.includes('cookies') ||
+      text.includes('consent') ||
+      text.includes('privacy') ||
+      text.includes('datenschutz') ||
+      text.includes('personalisierung') ||
+      text.includes('alle ablehnen') ||
+      marker.includes('cookie') ||
+      marker.includes('consent') ||
+      marker.includes('cxqnmb') ||
+      marker.includes('kxvlwc');
+  };
+
+  const findConsentButton = (container, preferredText) => {
+    const buttons = Array.from(container.querySelectorAll('button, [role="button"], input[type="button"], input[type="submit"], a'));
+    return buttons.find((button) => {
+      if (!isVisible(button)) {
+        return false;
+      }
+      const text = textOf(button).toLowerCase();
+      return preferredText.some((candidate) => text.includes(candidate)) &&
+        !cookieAcceptText.some((candidate) => text === candidate || text.includes(candidate));
+    });
+  };
+
+  const findGoogleConsentRejectButton = () => {
+    const direct = document.querySelector('#W0wltc');
+    if (direct && isVisible(direct)) {
+      return direct;
+    }
+    return Array.from(document.querySelectorAll('button, [role="button"]')).find((button) => {
+      if (!isVisible(button)) {
+        return false;
+      }
+      const text = textOf(button).toLowerCase();
+      const marker = `${button.id || ''} ${button.className || ''} ${button.getAttribute?.('aria-label') || ''}`.toLowerCase();
+      return /alle ablehnen|alles ablehnen|reject all|decline all/.test(`${text} ${marker}`) &&
+        !/alle akzeptieren|accept all/.test(`${text} ${marker}`);
+    });
+  };
+
+  const activateButton = (button) => {
+    try {
+      button.scrollIntoView({ block: 'center', inline: 'center' });
+    } catch (error) {
+      // Ignore scroll failures.
+    }
+    for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+      try {
+        button.dispatchEvent(new MouseEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+      } catch (error) {
+        // Continue with native click fallback.
+      }
+    }
+    try {
+      button.click();
+    } catch (error) {
+      // Ignore final click failures.
+    }
+  };
+
+  const autoRejectCookieBanners = () => {
+    if (!settings.enabled || !settings.autoRejectCookiesEnabled || settings.antidoteModeEnabled || isCloudflareCompatibilityPage() || isTrustedPage()) {
+      return;
+    }
+
+    const googleRejectButton = findGoogleConsentRejectButton();
+    if (googleRejectButton) {
+      sendDebug('cookie-reject-click', { text: textOf(googleRejectButton).slice(0, 80), hostname: location.hostname, provider: 'google' });
+      activateButton(googleRejectButton);
+      return;
+    }
+
+    const containers = Array.from(document.querySelectorAll(cookieBannerSelector))
+      .filter((node) => isVisible(node) && isCookieContainer(node));
+
+    for (const container of containers) {
+      const rejectButton = findConsentButton(container, cookieRejectText);
+      if (rejectButton) {
+        sendDebug('cookie-reject-click', { text: textOf(rejectButton).slice(0, 80), hostname: location.hostname });
+        activateButton(rejectButton);
+        return;
+      }
+
+      const settingsButton = findConsentButton(container, cookieSettingsText);
+      if (settingsButton) {
+        sendDebug('cookie-settings-click', { text: textOf(settingsButton).slice(0, 80), hostname: location.hostname });
+        activateButton(settingsButton);
+        setTimeout(autoRejectCookieBanners, 500);
+        return;
+      }
+    }
+  };
+
+  const observeCookieBanners = () => {
+    if (!settings.enabled || !settings.autoRejectCookiesEnabled || settings.antidoteModeEnabled || isCloudflareCompatibilityPage() || isTrustedPage()) {
+      if (cookieRejectObserver) {
+        cookieRejectObserver.disconnect();
+        cookieRejectObserver = null;
+      }
+      sendDebug('cookie-reject-skip', {
+        enabled: settings.enabled,
+        autoRejectCookiesEnabled: settings.autoRejectCookiesEnabled,
+        antidoteModeEnabled: settings.antidoteModeEnabled,
+        cloudflareCompatibilityActive: isCloudflareCompatibilityPage(),
+        trusted: isTrustedPage(),
+        hostname: location.hostname
+      });
+      return;
+    }
+
+    sendDebug('cookie-reject-observe', {
+      hostname: location.hostname,
+      readyState: document.readyState,
+      googleRejectFound: Boolean(document.querySelector('#W0wltc'))
+    });
+    autoRejectCookieBanners();
+    if (!cookieRejectObserver) {
+      cookieRejectScans = 0;
+      [100, 350, 800, 1500, 3000, 5000].forEach((delay) => {
+        setTimeout(autoRejectCookieBanners, delay);
+      });
+      const intervalId = setInterval(() => {
+        cookieRejectScans += 1;
+        autoRejectCookieBanners();
+        if (cookieRejectScans >= COOKIE_REJECT_MAX_SCANS) {
+          clearInterval(intervalId);
+        }
+      }, COOKIE_REJECT_SCAN_MS);
+
+      cookieRejectObserver = new MutationObserver(autoRejectCookieBanners);
+      cookieRejectObserver.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['class', 'id', 'style', 'aria-label']
+      });
+    }
   };
 
   const isPlayerFrame = (frame) => {
@@ -417,6 +648,7 @@ iframe[src*=".cyou/"] {
       ...(settings.fingerprintProfile || {})
     };
     syncPageState();
+    observeCookieBanners();
     if (isTrustedPage() || settings.antidoteModeEnabled) {
       return;
     }
@@ -437,6 +669,7 @@ iframe[src*=".cyou/"] {
       return;
     }
     removePopups();
+    observeCookieBanners();
     injectPageScript();
     poisonTrackers();
     installClickGuards();

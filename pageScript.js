@@ -69,7 +69,7 @@
     'icu'
   ];
   const DEFAULT_FINGERPRINT_PROFILE = {
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Poisoned/1.0',
     platform: 'Win32',
     language: 'en-US',
     languages: ['en-US', 'en'],
@@ -82,7 +82,20 @@
     webglRenderer: 'ANGLE (Google, Vulkan 1.3.0)',
     doNotTrack: '1',
     globalPrivacyControl: true,
-    cookieEnabled: true
+    cookieEnabled: true,
+    screenWidth: 1920,
+    screenHeight: 1080,
+    availWidth: 1920,
+    availHeight: 1040,
+    innerWidth: 1920,
+    innerHeight: 940,
+    outerWidth: 1920,
+    outerHeight: 1080,
+    colorDepth: 24,
+    pixelDepth: 24,
+    devicePixelRatio: 1,
+    timezone: 'UTC',
+    timezoneOffset: 0
   };
 
   let extensionState = {
@@ -136,7 +149,19 @@
     sendBeacon: navigator.sendBeacon,
     windowOpen: window.open,
     locationAssign: Location.prototype.assign,
-    locationReplace: Location.prototype.replace
+    locationReplace: Location.prototype.replace,
+    devicePixelRatio: Object.getOwnPropertyDescriptor(window, 'devicePixelRatio')?.get,
+    innerWidth: Object.getOwnPropertyDescriptor(window, 'innerWidth')?.get,
+    innerHeight: Object.getOwnPropertyDescriptor(window, 'innerHeight')?.get,
+    outerWidth: Object.getOwnPropertyDescriptor(window, 'outerWidth')?.get,
+    outerHeight: Object.getOwnPropertyDescriptor(window, 'outerHeight')?.get,
+    connectionGetter: Object.getOwnPropertyDescriptor(Navigator.prototype, 'connection')?.get,
+    mozConnectionGetter: Object.getOwnPropertyDescriptor(Navigator.prototype, 'mozConnection')?.get,
+    webkitConnectionGetter: Object.getOwnPropertyDescriptor(Navigator.prototype, 'webkitConnection')?.get,
+    getBattery: navigator.getBattery,
+    permissionsQuery: navigator.permissions?.query,
+    credentialsGet: navigator.credentials?.get,
+    storageEstimate: navigator.storage?.estimate
   };
 
   let lastTrustedClick = null;
@@ -154,8 +179,28 @@
       ...profile,
       languages: Array.isArray(profile.languages) && profile.languages.length
         ? profile.languages
-        : DEFAULT_FINGERPRINT_PROFILE.languages
+      : DEFAULT_FINGERPRINT_PROFILE.languages
     };
+  };
+
+  const markPoisonInstalled = () => {
+    try {
+      const profile = getFingerprintProfile();
+      Object.defineProperty(window, '__POISON_IDENTITY_PAGE_SCRIPT__', {
+        value: {
+          installed: true,
+          enabled: Boolean(extensionState.enabled),
+          spoofingEnabled: Boolean(extensionState.spoofingEnabled),
+          userAgent: profile.userAgent,
+          platform: profile.platform,
+          deviceMemory: profile.deviceMemory
+        },
+        configurable: true
+      });
+      notify('PAGE_SCRIPT_READY', window.__POISON_IDENTITY_PAGE_SCRIPT__);
+    } catch (error) {
+      // Keep hooks alive even if another script locks globals.
+    }
   };
 
   const isTrackerLikeUrl = (urlString) => {
@@ -438,16 +483,23 @@
     overrideTimezone();
     overridePlugins();
     overrideMediaDevices();
+    overrideWindowMetrics();
+    overrideNetworkConnection();
+    overrideBattery();
+    overridePermissions();
+    overrideCredentials();
+    overrideStorageEstimate();
   };
 
   const overrideScreenProperties = () => {
+    const profile = getFingerprintProfile();
     const screenProfile = {
-      width: 1920,
-      height: 1080,
-      availWidth: 1920,
-      availHeight: 1040,
-      colorDepth: 24,
-      pixelDepth: 24
+      width: profile.screenWidth || 1920,
+      height: profile.screenHeight || 1080,
+      availWidth: profile.availWidth || profile.screenWidth || 1920,
+      availHeight: profile.availHeight || 1040,
+      colorDepth: profile.colorDepth || 24,
+      pixelDepth: profile.pixelDepth || profile.colorDepth || 24
     };
 
     Object.entries(screenProfile).forEach(([prop, value]) => {
@@ -468,11 +520,15 @@
   };
 
   const overrideTimezone = () => {
+    const timezone = getFingerprintProfile().timezone || 'UTC';
+    const offset = Number.isFinite(getFingerprintProfile().timezoneOffset)
+      ? getFingerprintProfile().timezoneOffset
+      : 0;
     try {
       Intl.DateTimeFormat.prototype.resolvedOptions = function (...args) {
         const options = original.intlResolvedOptions.apply(this, args);
         if (extensionState.enabled && extensionState.spoofingEnabled) {
-          return { ...options, timeZone: 'UTC' };
+          return { ...options, timeZone: timezone };
         }
         return options;
       };
@@ -483,7 +539,7 @@
     try {
       Date.prototype.getTimezoneOffset = function (...args) {
         if (extensionState.enabled && extensionState.spoofingEnabled) {
-          return 0;
+          return offset;
         }
         return original.dateGetTimezoneOffset.apply(this, args);
       };
@@ -537,6 +593,165 @@
       };
     } catch (error) {
       // Keep native media behavior if locked.
+    }
+  };
+
+  const overrideWindowMetrics = () => {
+    const profile = getFingerprintProfile();
+    const metrics = {
+      devicePixelRatio: profile.devicePixelRatio || 1,
+      innerWidth: profile.innerWidth || profile.screenWidth || 1920,
+      innerHeight: profile.innerHeight || 940,
+      outerWidth: profile.outerWidth || profile.screenWidth || 1920,
+      outerHeight: profile.outerHeight || profile.screenHeight || 1080
+    };
+
+    Object.entries(metrics).forEach(([prop, value]) => {
+      try {
+        Object.defineProperty(window, prop, {
+          get() {
+            if (extensionState.enabled && extensionState.spoofingEnabled) {
+              return value;
+            }
+            const getter = original[prop];
+            return getter ? getter.call(window) : value;
+          },
+          configurable: true
+        });
+      } catch (error) {
+        // Window metrics may be locked in some browsers.
+      }
+    });
+  };
+
+  const fakeConnection = Object.freeze({
+    downlink: 10,
+    downlinkMax: 10,
+    effectiveType: '4g',
+    rtt: 50,
+    saveData: false,
+    type: 'wifi',
+    onchange: null,
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return false; }
+  });
+
+  const overrideNetworkConnection = () => {
+    const props = {
+      connection: original.connectionGetter,
+      mozConnection: original.mozConnectionGetter,
+      webkitConnection: original.webkitConnectionGetter
+    };
+    for (const [prop, getter] of Object.entries(props)) {
+      try {
+        Object.defineProperty(Navigator.prototype, prop, {
+          get() {
+            if (extensionState.enabled && extensionState.spoofingEnabled) {
+              return fakeConnection;
+            }
+            return getter ? getter.call(this) : undefined;
+          },
+          configurable: true
+        });
+      } catch (error) {
+        // Some browsers do not expose network information.
+      }
+    }
+  };
+
+  const overrideBattery = () => {
+    if (!original.getBattery) {
+      return;
+    }
+    try {
+      navigator.getBattery = function (...args) {
+        if (!extensionState.enabled || !extensionState.spoofingEnabled) {
+          return original.getBattery.apply(this, args);
+        }
+        return Promise.resolve(Object.freeze({
+          charging: true,
+          chargingTime: 0,
+          dischargingTime: Infinity,
+          level: 1,
+          onchargingchange: null,
+          onchargingtimechange: null,
+          ondischargingtimechange: null,
+          onlevelchange: null,
+          addEventListener() {},
+          removeEventListener() {},
+          dispatchEvent() { return false; }
+        }));
+      };
+    } catch (error) {
+      // Battery API may be absent or locked.
+    }
+  };
+
+  const overridePermissions = () => {
+    if (!navigator.permissions || !original.permissionsQuery) {
+      return;
+    }
+    try {
+      navigator.permissions.query = function (permissionDescriptor, ...args) {
+        if (!extensionState.enabled || !extensionState.spoofingEnabled) {
+          return original.permissionsQuery.call(this, permissionDescriptor, ...args);
+        }
+        const name = String(permissionDescriptor?.name || '');
+        const state = /notifications|push|camera|microphone|geolocation|midi|clipboard|persistent-storage/i.test(name)
+          ? 'prompt'
+          : 'granted';
+        return Promise.resolve(Object.freeze({
+          name,
+          state,
+          onchange: null,
+          addEventListener() {},
+          removeEventListener() {},
+          dispatchEvent() { return false; }
+        }));
+      };
+    } catch (error) {
+      // Keep native permission behavior if locked.
+    }
+  };
+
+  const overrideCredentials = () => {
+    if (!navigator.credentials || !original.credentialsGet) {
+      return;
+    }
+    try {
+      navigator.credentials.get = function (options, ...args) {
+        if (!extensionState.enabled || !extensionState.spoofingEnabled) {
+          return original.credentialsGet.call(this, options, ...args);
+        }
+        return Promise.resolve(null);
+      };
+    } catch (error) {
+      // Keep native credentials behavior if locked.
+    }
+  };
+
+  const overrideStorageEstimate = () => {
+    if (!navigator.storage || !original.storageEstimate) {
+      return;
+    }
+    try {
+      navigator.storage.estimate = function (...args) {
+        if (!extensionState.enabled || !extensionState.spoofingEnabled) {
+          return original.storageEstimate.apply(this, args);
+        }
+        return Promise.resolve({
+          quota: 120000000000,
+          usage: 12000000,
+          usageDetails: {
+            indexedDB: 4000000,
+            caches: 2000000,
+            serviceWorkerRegistrations: 0
+          }
+        });
+      };
+    } catch (error) {
+      // Keep native storage behavior if locked.
     }
   };
 
@@ -867,8 +1082,11 @@
 
   window.addEventListener(`${EVENT_PREFIX}_STATE`, (event) => {
     extensionState = { ...extensionState, ...(event.detail || {}) };
+    markPoisonInstalled();
+    installNavigatorSpoofing();
   });
 
+  markPoisonInstalled();
   installNavigatorSpoofing();
   installCanvasHooks();
   installWebGLHooks('WebGLRenderingContext', original.webglReadPixels, original.webglGetParameter);
