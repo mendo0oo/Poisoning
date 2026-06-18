@@ -7,7 +7,9 @@ $buildRoot = Join-Path $uBlockDir "dist\build"
 $uAssetsDir = Join-Path $buildRoot "uAssets"
 
 if (-not (Test-Path $uBlockDir)) {
-    throw "Poison Hybrid backend source is missing. Expected: $uBlockDir"
+    Write-Host "Cloning Poison Hybrid backend source..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Path (Split-Path -Parent $uBlockDir) -Force | Out-Null
+    git clone https://github.com/gorhill/uBlock.git $uBlockDir
 }
 
 function Copy-Dir {
@@ -36,6 +38,9 @@ function Ensure-UAssets {
     $mainDir = Join-Path $uAssetsDir "main"
     $prodDir = Join-Path $uAssetsDir "prod"
     if ((Test-Path $mainDir) -and (Test-Path $prodDir)) {
+        Write-Host "Refreshing filter assets for Poison Hybrid..." -ForegroundColor Cyan
+        git -C $mainDir pull --ff-only
+        git -C $prodDir pull --ff-only
         return
     }
 
@@ -143,7 +148,7 @@ function Set-PoisonHybridLocaleBranding {
             Replace("uBlock/wiki", "Poison-Hybrid/docs").
             Replace("Poison Hybrid has prevented the following page from loading:", "Poison Hybrid blocked this page before it could load:").
             Replace("Poison Hybrid has prevented the following page from loading.", "Poison Hybrid blocked this page before it could load.").
-            Replace("Finally, an efficient blocker. Easy on CPU and memory.", "Poison Hybrid privacy engine with tracker blocking, popup hardening, and Poison Identity controls.")
+            Replace("Finally, an efficient blocker. Easy on CPU and memory.", "Poison Hybrid privacy engine with tracker blocking, popup hardening, and Poison privacy controls.")
         if ($next -ne $text) {
             Set-Content -LiteralPath $path -Value $next -Encoding UTF8
         }
@@ -173,6 +178,13 @@ function Set-PoisonHybridHtmlBranding {
             Set-Content -LiteralPath $path -Value $next -Encoding UTF8
         }
     }
+}
+
+function Set-PoisonHybridStrictBlockPage {
+    param([Parameter(Mandatory = $true)][string]$BuildDir)
+
+    Copy-File -Source (Join-Path $root "hybrid\document-blocked.html") -Destination (Join-Path $BuildDir "document-blocked.html")
+    Copy-File -Source (Join-Path $root "hybrid\document-blocked.css") -Destination (Join-Path $BuildDir "css\document-blocked.css")
 }
 
 function Build-UBlockPlatform {
@@ -212,18 +224,25 @@ function Add-PoisonToUBlockBuild {
 
     $poisonDir = Join-Path $BuildDir "poison"
     New-Item -ItemType Directory -Path $poisonDir -Force | Out-Null
+    $logoSource = Join-Path $root "logo-poison.png"
+    if ($Platform -eq "Chromium") {
+        $chromeLogo = Join-Path $root "Logo-Chrome.png"
+        if (Test-Path $chromeLogo) {
+            $logoSource = $chromeLogo
+        }
+    }
     Copy-File -Source (Join-Path $root "pageScript.js") -Destination (Join-Path $poisonDir "pageScript.js")
     Copy-File -Source (Join-Path $root "hybrid\poison-hybrid-content.js") -Destination (Join-Path $poisonDir "poison-hybrid-content.js")
     Copy-File -Source (Join-Path $root "hybrid\poison-hybrid-background.js") -Destination (Join-Path $poisonDir "poison-hybrid-background.js")
     Copy-File -Source (Join-Path $root "popup.html") -Destination (Join-Path $poisonDir "popup.html")
     Copy-File -Source (Join-Path $root "popup.js") -Destination (Join-Path $poisonDir "popup.js")
     Copy-File -Source (Join-Path $root "styles.css") -Destination (Join-Path $poisonDir "styles.css")
-    Copy-File -Source (Join-Path $root "logo-poison.png") -Destination (Join-Path $poisonDir "logo-poison.png")
+    Copy-File -Source $logoSource -Destination (Join-Path $poisonDir "logo-poison.png")
 
     foreach ($iconName in @("icon_16.png", "icon_16-off.png", "icon_16-loading.png", "icon_32.png", "icon_32-off.png", "icon_32-loading.png", "icon_64.png", "icon_64-off.png", "icon_64-loading.png", "icon_128.png")) {
         $iconPath = Join-Path $BuildDir "img\$iconName"
         if (Test-Path $iconPath) {
-            Copy-File -Source (Join-Path $root "logo-poison.png") -Destination $iconPath
+            Copy-File -Source $logoSource -Destination $iconPath
         }
     }
 
@@ -264,6 +283,7 @@ function Add-PoisonToUBlockBuild {
 
     Set-PoisonHybridLocaleBranding -BuildDir $BuildDir
     Set-PoisonHybridHtmlBranding -BuildDir $BuildDir
+    Set-PoisonHybridStrictBlockPage -BuildDir $BuildDir
 
     $manifest.name = "Poison Hybrid"
     $manifest.short_name = "Poison Hybrid"
@@ -300,7 +320,7 @@ Poison Hybrid includes modified GPLv3 code from uBlock Origin:
 https://github.com/gorhill/uBlock
 
 uBlock Origin is copyright Raymond Hill and contributors.
-Poison Hybrid changes the visible branding, adds Poison Identity frontend modules,
+Poison Hybrid changes the visible branding, adds Poison privacy modules,
 and adds page-level privacy controls, but the bundled blocking backend remains a
 modified GPLv3-derived work.
 
@@ -356,19 +376,19 @@ $chBuild = Build-UBlockPlatform -Platform "chromium"
 Add-PoisonToUBlockBuild -BuildDir $ffBuild -Platform "Firefox"
 Add-PoisonToUBlockBuild -BuildDir $chBuild -Platform "Chromium"
 
-$ffXpi = Join-Path $outDir "poison-hybrid-firefox.xpi"
-$chZip = Join-Path $outDir "poison-hybrid-chromium.zip"
+$ffXpi = Join-Path $outDir "poison-firefox.xpi"
+$chZip = Join-Path $outDir "poison-brave.zip"
 Remove-Item $ffXpi, $chZip -Force -ErrorAction SilentlyContinue
 
 New-WebExtensionZip -SourceDir $ffBuild -DestinationPath $ffXpi
 New-WebExtensionZip -SourceDir $chBuild -DestinationPath $chZip
 
-$chUnpacked = Join-Path $outDir "poison-hybrid-chromium"
+$chUnpacked = Join-Path $outDir "poison-brave-unpacked"
 if (Test-Path $chUnpacked) {
     Remove-Item -Path $chUnpacked -Recurse -Force
 }
 Copy-Dir -Source $chBuild -Destination $chUnpacked
 
 Write-Host "Hybrid Firefox XPI: $ffXpi" -ForegroundColor Green
-Write-Host "Hybrid Chromium ZIP: $chZip" -ForegroundColor Green
-Write-Host "Hybrid Chromium unpacked: $chUnpacked" -ForegroundColor Green
+Write-Host "Hybrid Brave ZIP: $chZip" -ForegroundColor Green
+Write-Host "Hybrid Brave unpacked: $chUnpacked" -ForegroundColor Green

@@ -97,7 +97,13 @@ const CROSS_SITE_LURE_PATTERNS = [
 const SUSPICIOUS_REDIRECT_HOSTS = [
   'bladelikefreightwhat.com',
   'rostelshute.shop',
-  'sewarsremeets.cfd'
+  'sewarsremeets.cfd',
+  'thatdisform.cyou',
+  'watchcolleague.com',
+  'redgarto.com',
+  'flushpersist.com',
+  'workdeadlinededicate.com',
+  'preferencenail.com'
 ];
 const SUSPICIOUS_REDIRECT_TLDS = [
   'cfd',
@@ -295,6 +301,7 @@ const activateCloudflareCompatibility = (reason = 'challenge-detected') => {
 };
 
 const isCloudflareCompatibilityPage = () => Boolean(extensionState.cloudflareCompatibilityEnabled && cloudflareCompatibilityActive);
+const isAntidotePage = () => Boolean(extensionState.antidoteModeEnabled);
 
 const observeCloudflareCompatibility = () => {
   if (!extensionState.cloudflareCompatibilityEnabled) {
@@ -615,7 +622,7 @@ const setupStorageListener = () => {
         cookieRejectObserver.disconnect();
         cookieRejectObserver = null;
       }
-      if (extensionState.enabled && extensionState.popupBlockingEnabled) {
+      if (extensionState.enabled && extensionState.popupBlockingEnabled && !isAntidotePage()) {
         observeAnnoyancePopups();
         applyCosmeticFilters();
       } else if (popupBlockObserver) {
@@ -650,7 +657,7 @@ const isValidPageSelector = (selector) => {
 };
 
 const applyCosmeticFilters = () => {
-  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage()) {
+  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || isAntidotePage()) {
     removeCosmeticFilters();
     return;
   }
@@ -1022,7 +1029,7 @@ const hasAdClickTrapSignals = () => {
 };
 
 const shouldSwallowDocumentClickTrap = (event) => {
-  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || !event.isTrusted) {
+  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || isAntidotePage() || !event.isTrusted) {
     return false;
   }
 
@@ -1038,12 +1045,12 @@ const shouldSwallowDocumentClickTrap = (event) => {
     return true;
   }
 
-  return hasAdClickTrapSignals();
+  return false;
 };
 
 const installClickRedirectShield = () => {
   const swallowSuspiciousClick = (event, phase) => {
-    if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage()) {
+    if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || isAntidotePage()) {
       return;
     }
 
@@ -1130,7 +1137,7 @@ const installClickRedirectShield = () => {
   }, true);
 
   document.addEventListener('submit', (event) => {
-    if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage()) {
+    if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || isAntidotePage()) {
       return;
     }
 
@@ -1415,6 +1422,37 @@ const POPUP_SELECTOR_PATTERNS = [
 
 const isPageOwnedElement = (element) => element.id !== 'poison-identity-overlay' && element.id !== 'poison-identity-banner' && !element.closest('#poison-identity-overlay, #poison-identity-banner');
 
+const isAniWorldEmbedFrame = (element) => {
+  if (!element || element.tagName !== 'IFRAME' || !/(^|\.)aniworld\.to$/i.test(window.location.hostname)) {
+    return false;
+  }
+  const src = element.getAttribute('src') || element.src || '';
+  const marker = `${element.id || ''} ${element.className || ''} ${element.getAttribute('title') || ''}`.toLowerCase();
+  const container = element.closest?.('#stream, .hosterSiteDirectNav, [id*="stream" i], [class*="stream" i], [id*="player" i], [class*="player" i], [class*="hoster" i]');
+  return Boolean(container) || /aniworld\.to\/redirect\/|\/redirect\/\d+|voe|dood|filemoon|vidmoly|stream|player|embed/i.test(`${src} ${marker}`);
+};
+
+const isStaticPageLayoutElement = (element) => {
+  if (!element || typeof element.getBoundingClientRect !== 'function') {
+    return false;
+  }
+  const style = window.getComputedStyle(element);
+  if (style.position !== 'static' && style.position !== 'relative') {
+    return false;
+  }
+  const rect = element.getBoundingClientRect();
+  const marker = `${element.id || ''} ${element.className || ''}`.toLowerCase();
+  const textLength = getVisibleText(element).length;
+  const structuralTag = /^(MAIN|HEADER|FOOTER|NAV|ARTICLE)$/.test(element.tagName);
+  const structuralMarker = /(^|\s|[-_])(app|root|page|site|layout|container|content|main|wrapper|footer|header|navigation)(\s|[-_]|$)/.test(marker);
+  const popupMarker = /popup|modal|overlay|interstitial|adblock|float|sticky|sponsor|advert/.test(marker);
+  return !popupMarker &&
+    (structuralTag || structuralMarker) &&
+    rect.width >= Math.min(520, window.innerWidth * 0.45) &&
+    rect.height >= 120 &&
+    textLength >= 40;
+};
+
 const isActualMediaSurface = (element) => {
   if (!element) {
     return false;
@@ -1428,6 +1466,9 @@ const isActualMediaSurface = (element) => {
     return true;
   }
   if (tagName === 'IFRAME') {
+    if (isAniWorldEmbedFrame(element)) {
+      return true;
+    }
     const src = element.getAttribute('src') || '';
     const marker = `${element.id || ''} ${element.className || ''} ${element.getAttribute('title') || ''}`.toLowerCase();
     const largePlayerFrame = rect.width >= 520 && rect.height >= 280;
@@ -1450,6 +1491,10 @@ const looksLikePopup = (element) => {
   }
 
   if (isActualMediaSurface(element)) {
+    return false;
+  }
+
+  if (isStaticPageLayoutElement(element)) {
     return false;
   }
 
@@ -1485,6 +1530,7 @@ const looksLikePopup = (element) => {
     !isActualMediaSurface(element);
   const adWidgetText = hasAdWidgetText(element);
   const adWidgetMarker = /ad|ads|advert|banner|promo|sponsor|float|sticky|popup|modal|widget/.test(marker);
+  const positionedPopupSurface = fixedOrAbsolute || fixedOrSticky || centeredModal || centeredAdGate || cornerWidget || coversViewport;
 
   return fixedOrSticky && zIndex >= 100 && (
     isAdIframe ||
@@ -1496,11 +1542,11 @@ const looksLikePopup = (element) => {
     (centeredAdGate && hasPopupText && (hasCloseButton || largeOverlay || rect.width >= 300)) ||
     iframeOverlay ||
     (fixedOrAbsolute && (cornerWidget || centeredAdGate || largeOverlay || hasCloseButton) && (adWidgetText || hasAdFrame || hasPopupMarker || adWidgetMarker)) ||
-    ((hasPopupText || adWidgetText) && rect.width >= 180 && rect.height >= 70 && (hasCloseButton || rect.width <= window.innerWidth * 0.75));
+    ((hasPopupText || adWidgetText) && positionedPopupSurface && rect.width >= 180 && rect.height >= 70 && (hasCloseButton || rect.width <= window.innerWidth * 0.75));
 };
 
 const removeAnnoyancePopups = () => {
-  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage()) {
+  if (!extensionState.enabled || !extensionState.popupBlockingEnabled || isCloudflareCompatibilityPage() || isAntidotePage()) {
     return;
   }
 
@@ -1511,6 +1557,9 @@ const removeAnnoyancePopups = () => {
     ...document.querySelectorAll('body > div, body > section, body > aside, body > iframe, body iframe'),
     ...Array.from(document.querySelectorAll('div, section, aside, iframe, [role="dialog"], [aria-modal="true"]')).filter((element) => {
       if (!isVisible(element)) {
+        return false;
+      }
+      if (isStaticPageLayoutElement(element)) {
         return false;
       }
       const text = getVisibleText(element);
@@ -1547,7 +1596,7 @@ const removeAnnoyancePopups = () => {
 };
 
 const observeAnnoyancePopups = () => {
-  if (isCloudflareCompatibilityPage()) {
+  if (isCloudflareCompatibilityPage() || isAntidotePage()) {
     return;
   }
   if (popupBlockObserver) {
@@ -1600,17 +1649,17 @@ const init = async () => {
     loadCosmeticFilters();
     installClickRedirectShield();
 
-    if (extensionState.poisoningEnabled) {
+    if (extensionState.poisoningEnabled && !isAntidotePage()) {
       poisonPage();
       observeAds();
       setInterval(poisonPage, POISON_RATE_MS);
     }
 
-    if (extensionState.autoRejectCookiesEnabled) {
+    if (extensionState.autoRejectCookiesEnabled && !isAntidotePage()) {
       observeCookieBanners();
     }
 
-    if (extensionState.popupBlockingEnabled) {
+    if (extensionState.popupBlockingEnabled && !isAntidotePage()) {
       observeAnnoyancePopups();
     }
     debugLog('init-complete');

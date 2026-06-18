@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Poison Identity",
-  "description": "A privacy extension that blocks trackers, spoofs fingerprint signals, and adds noise to protect anonymity.",
+  "name": "Poison Chrome",
+  "description": "Chrome MV3 compatibility build for Poison privacy controls.",
   "version": "0.1.0",
   "permissions": ["storage", "scripting", "activeTab", "tabs", "webRequest", "declarativeNetRequest", "declarativeNetRequestFeedback", "privacy", "cookies", "browsingData", "alarms"],
   "host_permissions": ["<all_urls>"],
@@ -39,7 +39,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "poison-identity@example.com",
+      "id": "poison-hybrid@example.com",
       "strict_min_version": "109.0"
     }
   },

@@ -64,7 +64,6 @@ try {
 Write-Host "Opening Firefox test profile: $profileDir" -ForegroundColor Cyan
 Write-Host "Load extension from about:debugging:" -ForegroundColor Yellow
 Write-Host "  Hybrid: vendor\uBlock\dist\build\PoisonHybrid.firefox\manifest.json" -ForegroundColor Yellow
-Write-Host "  Poison only: firefox\manifest.json" -ForegroundColor Yellow
 
 $firefoxArgs = "-no-remote -profile `"$profileDir`" `"about:debugging#/runtime/this-firefox`" `"$url`""
 try {

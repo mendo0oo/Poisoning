@@ -105,7 +105,12 @@ const SUSPICIOUS_REDIRECT_HOSTS = [
   'bladelikefreightwhat.com',
   'rostelshute.shop',
   'sewarsremeets.cfd',
-  'thatdisform.cyou'
+  'thatdisform.cyou',
+  'watchcolleague.com',
+  'redgarto.com',
+  'flushpersist.com',
+  'workdeadlinededicate.com',
+  'preferencenail.com'
 ];
 const SUSPICIOUS_REDIRECT_TLDS = [
   'cfd',
@@ -1178,7 +1183,7 @@ function getRequestSourceUrl(details) {
 if (!canUseDeclarativeNetRequest) {
   browserAPI.webRequest.onBeforeRequest.addListener(
     (details) => {
-      if (!currentSettings.enabled || currentSettings.antidoteModeEnabled) {
+      if (!currentSettings.enabled) {
         return { cancel: false };
       }
 
@@ -1203,7 +1208,7 @@ if (!canUseDeclarativeNetRequest) {
       if (details.type === 'main_frame') {
         return { requestHeaders: details.requestHeaders };
       }
-      if (!currentSettings.enabled || currentSettings.antidoteModeEnabled || !currentSettings.headerProtectionEnabled || !isTrackerUrl(details.url, currentSettings.blockList, details.type, getRequestSourceUrl(details), details.tabId)) {
+      if (!currentSettings.enabled || !currentSettings.headerProtectionEnabled || !isTrackerUrl(details.url, currentSettings.blockList, details.type, getRequestSourceUrl(details), details.tabId)) {
         return { requestHeaders: details.requestHeaders };
       }
 
@@ -1253,7 +1258,7 @@ function syncDeclarativeRuleset(enabled) {
 
   const enabledRulesets = [];
   const disabledRulesets = [];
-  const active = enabled && !currentSettings.antidoteModeEnabled;
+  const active = Boolean(enabled);
   if (active) {
     enabledRulesets.push('built_in_trackers');
   } else {

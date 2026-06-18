@@ -1,0 +1,469 @@
+/**
+    Poison Identity hybrid strict-block page.
+    Original uBlock Origin page logic remains GPLv3; this file only restyles
+    the document-blocked frontend for the Poison Identity build.
+*/
+
+:root {
+    --poison-bg: #030303;
+    --poison-panel: #050505;
+    --poison-line: #1c1c1c;
+    --poison-line-hot: #303030;
+    --poison-text: #e8e8e8;
+    --poison-muted: #8b8b8b;
+    --poison-dim: #5b5b5b;
+    --poison-accent: #8d4dff;
+    --poison-bad: #ff3347;
+    --poison-ok: #18ff87;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    background: var(--poison-bg);
+}
+
+body {
+    align-items: flex-start;
+    background:
+        radial-gradient(circle at 50% -20%, rgba(255,255,255,.08), transparent 34rem),
+        linear-gradient(90deg, rgba(255,255,255,.025), transparent 16%, transparent 84%, rgba(255,255,255,.025)),
+        var(--poison-bg);
+    color: var(--poison-text);
+    display: flex;
+    font-family: "Lucida Console", Consolas, "Courier New", monospace;
+    font-size: 12px;
+    justify-content: center;
+    letter-spacing: 0;
+    margin: 0;
+    min-height: 100vh;
+    padding: 28px 16px 42px;
+}
+
+body::before {
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0, rgba(255,255,255,.035) 1px, transparent 1px, transparent 4px);
+    content: "";
+    inset: 0;
+    mix-blend-mode: overlay;
+    opacity: .42;
+    pointer-events: none;
+    position: fixed;
+    z-index: 9999;
+}
+
+body.loading {
+    opacity: 0;
+}
+
+:root.mobile body {
+    padding: 16px 10px;
+}
+
+#rootContainer {
+    width: min(100%, 920px);
+}
+
+#rootContainer > * {
+    margin: 0 0 18px;
+}
+
+#poisonHeader {
+    align-items: end;
+    border-bottom: 1px solid var(--poison-line);
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-bottom: 18px;
+}
+
+#poisonBrand {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+    min-width: 0;
+}
+
+#poisonBrand img {
+    height: 52px;
+    object-fit: contain;
+    width: 52px;
+}
+
+#poisonBrand h1 {
+    color: white;
+    font-size: 20px;
+    line-height: 1.1;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+
+#poisonBrand p {
+    color: var(--poison-muted);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+#netStatus {
+    border: 1px solid var(--poison-line);
+    min-width: 172px;
+    padding: 12px 14px;
+    text-align: right;
+}
+
+#netStatus span {
+    color: var(--poison-muted);
+    display: block;
+    font-size: 10px;
+    margin-bottom: 8px;
+}
+
+#netStatus strong {
+    color: var(--poison-bad);
+    display: block;
+    font-size: 14px;
+}
+
+p {
+    line-height: 1.55;
+    margin: 0 0 10px;
+}
+
+a {
+    color: var(--poison-accent);
+    text-decoration: none;
+}
+
+a:hover {
+    color: white;
+}
+
+.code {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    color: var(--poison-text);
+    display: block;
+    font-size: 12px;
+    line-height: 1.55;
+    padding: 12px;
+    word-break: break-all;
+}
+
+#warningSign {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    color: var(--poison-bad);
+    fill: var(--poison-bad);
+    font-size: 0;
+    line-height: 1;
+    padding: 18px;
+    position: relative;
+}
+
+#warningSign::before {
+    color: var(--poison-muted);
+    content: ":: STRICT_BLOCK";
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+#warningSign .fa-icon {
+    color: var(--poison-bad);
+    display: inline-block;
+    fill: var(--poison-bad);
+    font-size: 42px;
+    vertical-align: middle;
+}
+
+#warningSign::after {
+    color: var(--poison-text);
+    content: "Request stopped before navigation.";
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-left: 14px;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+#rootContainer > div:not(#warningSign):not(#urlskip):not(#why):not(.li):not(#actionContainer) {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    padding: 18px;
+}
+
+#theURL {
+    color: var(--poison-muted);
+    padding: 0;
+}
+
+#theURL > * {
+    margin: 0;
+}
+
+#theURL > p {
+    position: relative;
+    z-index: 10;
+}
+
+#theURL > p > span:first-of-type {
+    display: block;
+    max-height: 7lh;
+    overflow-y: auto;
+}
+
+:root.mobile #theURL > p > span:first-of-type {
+    max-height: 5lh;
+}
+
+#theURL b {
+    color: var(--poison-bad);
+}
+
+#theURL #toggleParse {
+    background-color: #000;
+    border: 1px solid var(--poison-line-hot);
+    box-sizing: border-box;
+    color: var(--poison-muted);
+    cursor: pointer;
+    fill: var(--poison-muted);
+    font-size: 1rem;
+    padding: 6px;
+    position: absolute;
+    right: 8px;
+    top: 8px;
+}
+
+#theURL:not(.collapsed) #toggleParse > span:first-of-type {
+    display: none;
+}
+
+#theURL.collapsed #toggleParse > span:last-of-type {
+    display: none;
+}
+
+#theURL > p:hover #toggleParse {
+    border-color: var(--poison-accent);
+    color: white;
+    fill: white;
+}
+
+#parsed {
+    background-color: #000;
+    border: 1px solid var(--poison-line);
+    color: var(--poison-muted);
+    font-size: 11px;
+    margin-top: 10px;
+    overflow-x: auto;
+    padding: 12px;
+    text-align: initial;
+    text-overflow: ellipsis;
+}
+
+#theURL.collapsed > #parsed {
+    display: none;
+}
+
+#parsed ul,
+#parsed li {
+    list-style-type: none;
+}
+
+#parsed li {
+    border-bottom: 1px solid #101010;
+    padding: 5px 0;
+    white-space: nowrap;
+}
+
+#parsed span {
+    display: inline-block;
+}
+
+#parsed span:first-of-type {
+    color: var(--poison-text);
+    font-weight: bold;
+}
+
+#why {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    padding: 18px;
+}
+
+#why::before {
+    color: var(--poison-muted);
+    content: ":: BLOCK_REASON";
+    display: block;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+#why .why.code {
+    color: var(--poison-bad);
+}
+
+.why-extra {
+    color: var(--poison-muted);
+    line-height: 1.55;
+    margin-top: 10px;
+}
+
+.why-extra a {
+    white-space: nowrap;
+}
+
+.why-extra ul {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding-inline-start: 14px;
+}
+
+details {
+    color: var(--poison-muted);
+}
+
+details > summary {
+    color: var(--poison-text);
+    cursor: pointer;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+details > *:not(summary) {
+    margin-inline-start: 0;
+}
+
+#urlskip {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    padding: 18px;
+}
+
+#urlskip::before {
+    color: var(--poison-muted);
+    content: ":: REDIRECT_TARGET";
+    display: block;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+#urlskip a {
+    display: block;
+    max-height: 5lh;
+    overflow-y: auto;
+    word-break: break-all;
+}
+
+.li {
+    background: #000;
+    border: 1px solid var(--poison-line);
+    color: var(--poison-text);
+    padding: 14px 18px;
+}
+
+.li label {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+}
+
+.input.checkbox {
+    border: 1px solid var(--poison-line-hot);
+    display: inline-grid;
+    height: 16px;
+    place-items: center;
+    width: 16px;
+}
+
+.input.checkbox input {
+    appearance: none;
+    height: 16px;
+    margin: 0;
+    width: 16px;
+}
+
+.input.checkbox svg {
+    display: none;
+    fill: none;
+    height: 14px;
+    position: absolute;
+    stroke: var(--poison-ok);
+    stroke-width: 3px;
+    width: 14px;
+}
+
+.input.checkbox:has(input:checked) svg {
+    display: block;
+}
+
+#actionContainer {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#actionContainer > button,
+button {
+    background: #080808;
+    border: 1px solid var(--poison-line-hot);
+    color: var(--poison-text);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    min-height: 44px;
+    padding: 10px 14px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+#actionContainer > button:hover,
+button:hover {
+    background: #101010;
+    border-color: var(--poison-accent);
+    color: white;
+}
+
+#actionContainer > button.preferred {
+    border-color: var(--poison-bad);
+    color: white;
+}
+
+#actionContainer > button.preferred:hover {
+    background: rgba(255, 51, 71, .12);
+}
+
+.filterList {
+    white-space: nowrap;
+}
+
+.filterList .filterListSupport[href="#"] {
+    display: none;
+}
+
+.filterList .filterListSupport:not([href="#"]) {
+    margin-inline-start: 0.25em;
+}
+
+:root.mobile #poisonHeader,
+:root.mobile #actionContainer {
+    grid-template-columns: 1fr;
+}
+
+:root.mobile #netStatus {
+    text-align: left;
+}
+
+:root.mobile #warningSign::after {
+    display: block;
+    margin: 12px 0 0;
+}
+
+:root.mobile button {
+    width: 100%;
+}

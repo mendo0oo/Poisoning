@@ -31,7 +31,7 @@ const els = {
 let currentState = null;
 
 Object.defineProperty(window, 'marlboro', {
-  value: () => 'Poison Identity // smoke the trackers',
+  value: () => 'Poison Hybrid // smoke the trackers',
   enumerable: false,
   configurable: false
 });
