@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Documentation and notes for mend0's Poison Hybrid privacy extension."
+    />
+    <title>Poison Hybrid Documentation | mend0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="doc-page">
+    <main class="doc-main">
+      <a class="doc-back" href="/#projects">Back to projects</a>
+
+      <section class="doc-hero">
+        <p class="eyebrow code-label">docs.poison.hybrid</p>
+        <h1>Poison Hybrid</h1>
+        <p class="doc-lede">
+          They collect. We contaminate. Poison Hybrid is my browser privacy project for blocking
+          trackers, killing sketchy redirects, reducing fingerprint leaks, and making tracker data
+          less clean than collectors want it to be.
+        </p>
+        <div class="doc-actions">
+          <a class="doc-action" href="https://github.com/mendo0oo/Poisoning" target="_blank" rel="noopener noreferrer">Open repo</a>
+          <a class="doc-action" href="/#links">Contact</a>
+        </div>
+      </section>
+
+      <section class="doc-section">
+        <h2>What it is</h2>
+        <p>
+          Poison Hybrid is a Firefox-first privacy extension with a hybrid blocking backend and my
+          own page-level privacy modules on top. It blocks tracker and ad requests, hardens against
+          popup traps and redirect chains, spoofs common fingerprint surfaces, shields WebRTC/header
+          leaks, rejects common cookie banners, and can add controlled fake noise to tracker-style
+          collection endpoints.
+        </p>
+      </section>
+
+      <section class="doc-section">
+        <h2>Why I care</h2>
+        <p>
+          The modern web treats normal browsing like raw material. Clicks, scrolls, searches,
+          devices, embeds, misclicks, and little browser quirks get measured, packaged, and used for
+          profiles. I do not want every movement online to become a clean signal for ad companies,
+          analytics vendors, or data brokers. If data is the fuel, Poison throws sand into the engine.
+        </p>
+      </section>
+
+      <section class="doc-section">
+        <h2>Core ideas</h2>
+        <ul>
+          <li>Block the obvious trackers, ads, popups, fake dialogs, blank tabs, and redirect bait.</li>
+          <li>Keep visible user-clicked download links working instead of blocking everything blindly.</li>
+          <li>Spoof noisy browser surfaces like navigator data, screen values, canvas, WebGL, plugins, media devices, and WebRTC candidates.</li>
+          <li>Use temporary poison profiles so fake tracker-noise personas reset when the browser session ends.</li>
+          <li>Keep Antidote Mode for Cloudflare, banking, login pages, video embeds, and fragile sites.</li>
+          <li>Treat privacy as active resistance, not a checkbox hidden three menus deep.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section">
+        <h2>Boundaries</h2>
+        <p>
+          Poison improves privacy, but it is not invisibility. It does not hide an IP address, bypass
+          Cloudflare or VPN reputation checks, protect logged-in accounts from first-party tracking,
+          or replace a hardened browser profile, VPN/Tor, and account separation. It is a defensive
+          privacy tool and a learning project, not a promise that the whole internet suddenly forgets
+          who you are.
+        </p>
+      </section>
+
+      <section class="doc-section">
+        <h2>Browser stance</h2>
+        <p>
+          Firefox and Firefox-based browsers are the main target because they still give privacy
+          extensions stronger control. Brave is supported as the practical Chromium option. Chrome
+          gets a compatibility build because Manifest V3 limits what blockers can do. Opera, Opera GX,
+          and telemetry-heavy Chromium reskins are not the focus. A gaming skin, sidebar, wallet, or
+          AI button does not turn surveillance infrastructure into privacy software.
+        </p>
+      </section>
+
+      <section class="doc-section">
+        <h2>Status</h2>
+        <p>
+          The working build is Poison Hybrid: Firefox XPI, Brave ZIP, and a weaker Chrome compatibility
+          ZIP. It is still a work in progress. Expect broken sites, rough edges, and settings that need
+          tuning. That is the cost of building something that pushes back instead of politely accepting
+          every tracker script the web throws at the browser.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -34,6 +34,8 @@ Because we are tired of:
 
 If data is the fuel, Poison throws sand into the engine.
 
+[Documentation](https://www.mend0.net/docs/poisoning.html)
+
 ## What Works Now
 
 Poison Hybrid currently focuses on practical blocking and controlled damage to tracker profiles:
