@@ -54,3 +54,4 @@ Each weekly report should note whether a development suggests:
 - a threat-model limitation
 - a new test-lab case
 - no code change
+<!-- weekly-privacy-updater: enabled -->
