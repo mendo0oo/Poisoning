@@ -34,7 +34,10 @@ Because we are tired of:
 
 If data is the fuel, Poison throws sand into the engine.
 
-[Documentation](https://www.mend0.net/docs/poisoning.html)
+## Documentation
+
+- [Project documentation](https://www.mend0.net/docs/poisoning.html)
+- [Privacy research & weekly updates](Documentation/README.md)
 
 ## What Works Now
 
