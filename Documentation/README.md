@@ -2,7 +2,7 @@
 
 This directory is the research and documentation archive for **Poison Hybrid**.
 
-The public project overview remains at [mend0.net/docs/poisoning.html](https://mend0.net/docs/poisoning.html). This repository section keeps evidence, weekly privacy updates, and project-relevant notes behind the ideas described there.
+The public project overview remains at [mend0.net/docs/poisoning.html](https://mend0.net/docs/poisoning.html). This repository section keeps evidence, daily privacy updates, and project-relevant notes behind the ideas described there.
 
 ## Project context
 
@@ -18,9 +18,9 @@ Poison Hybrid is a Firefox-first privacy extension focused on:
 
 Poison improves privacy, but it is not anonymity or invisibility. It does not hide an IP address, replace Tor/VPN/account separation, defeat server-side identity systems, or make logged-in first-party tracking disappear.
 
-## Weekly privacy research
+## Daily privacy research
 
-Every Saturday, this archive is updated with meaningful developments from the previous week.
+This archive is updated with meaningful, source-verified privacy developments.
 
 Coverage includes:
 
@@ -43,10 +43,11 @@ Avoid minor incidents, duplicate rewrites, marketing posts, unsourced claims, an
 ## Archive
 
 - [2026-09-26 — Weekly Privacy Update](privacy-updates/2026-09-26.md)
+- [2026-09-30 — Google search-data sharing and re-identification risks](privacy-updates/2026-09-30.md)
 
 ## How research feeds Poison
 
-Each weekly report should note whether a development suggests:
+Each research report should note whether a development suggests:
 
 - a blocking/filtering change
 - a fingerprinting or telemetry test
